@@ -6,10 +6,7 @@
 #include <linux/tcp.h>
 #include <linux/udp.h>
 #include <linux/netlink.h>
-// #include <net/netlink.h>
-// #include <net/net_message.h>
-// #include <net/netlink.h>
-// #include <net/net_message.h>
+
 #include <net/netlink.h>
 #include <net/net_namespace.h>
 struct sock *socket;
@@ -81,7 +78,10 @@ static int __init netfilter_example_init(void) {
         };
     // create socket
     socket = netlink_kernel_create(&init_net, NETLINK_TESTFAMILY, &config);
-    if(socket == NULL) return -1;
+    if(socket == NULL){
+        pr_err("Failed to create socket\n");
+        return -1;
+    }
     // netfilter hook initializaion
     nfho.hook = hook_func;              
     nfho.hooknum = NF_INET_PRE_ROUTING;     
@@ -99,6 +99,9 @@ static int __init netfilter_example_init(void) {
 static void __exit netfilter_example_exit(void) {
     pr_info("Netfilter example module unloaded.\n");
     nf_unregister_net_hook(&init_net, &nfho);
+    if (socket)
+        netlink_kernel_release(socket);
+
 }
 
 module_init(netfilter_example_init);
