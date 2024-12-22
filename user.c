@@ -8,13 +8,39 @@
 #include <netinet/in.h>
 #include <sys/types.h>
 #include <sys/ioctl.h>
-
+#include <arpa/inet.h>  
 #define NETLINK_TESTFAMILY 25
 #define MULTICAST_GROUP_ID 1  
 
 void handle_message(struct nlmsghdr *nlh) {
     char *msg = (char *)NLMSG_DATA(nlh);
-    printf("Received message: %s\n", msg);
+    char *token;
+    token = strtok(msg,"\n");
+    printf("msg is %s\n", msg);
+    unsigned int  saddr;
+    unsigned char protocol;
+    token = strtok(NULL, "\n");
+    
+    // 複製協議和源地址
+    if (token) {
+        memcpy(&protocol, token, sizeof(protocol));
+        memcpy(&saddr, token + sizeof(protocol), sizeof(saddr));
+    }
+    // token = strtok(NULL, "\n"); 
+    // memcpy(&protocol, token, sizeof(protocol));
+    // memcpy(&saddr, token + sizeof(protocol), sizeof(saddr));
+
+    // printf("Received message: %s\n", msg);
+    //printf("IP : %pI4 protocol %s\n",saddr, protocol);
+    // struct in_addr ip_addr;
+    // ip_addr.s_addr = saddr;
+    char ip_str[INET_ADDRSTRLEN];  // 用於存儲 IP 地址字符串
+    inet_ntop(AF_INET, &saddr, ip_str, INET_ADDRSTRLEN);
+
+    // 打印源 IP 地址和協議
+    //printf("IP : %s protocol : %u\n", ip_str, protocol);
+    printf("IP : %s protocol : %u\n", ip_str, protocol);
+
 }
 
 int main() {

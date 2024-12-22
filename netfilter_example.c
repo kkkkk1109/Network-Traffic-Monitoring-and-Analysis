@@ -24,7 +24,7 @@ static unsigned int hook_func(void *priv,struct sk_buff *skb, const struct nf_ho
         return NF_ACCEPT;
 
     ip_header = ip_hdr(skb);
-    //unsigned int protocol = ip_header->protocol;
+
     //message
     struct nlmsghdr *nlh;
 
@@ -34,13 +34,21 @@ static unsigned int hook_func(void *priv,struct sk_buff *skb, const struct nf_ho
     size_t message_size;
     struct sk_buff *skb_out;
     if (ip_header) {
+        unsigned char protocol = ip_header->protocol;
+        unsigned int saddr = ntohl(ip_header->saddr);
         // print in kernal
-        pr_info("Netfilter Hook: Src IP = %pI4, Dest IP = %pI4",
-                &ip_header->saddr, &ip_header->daddr);
+        pr_info("Netfilter Hook: Src IP = %pI4, Dest IP = %pI4 protocol = %d",
+                &ip_header->saddr, &ip_header->daddr, protocol);
         // generate message
-        snprintf(message, sizeof(message), "Netfilter Hook: Src IP = %pI4, Dest IP = %pI4",
-                &ip_header->saddr, &ip_header->daddr);
+        snprintf(message, sizeof(message), "Netfilter Hook: Src IP = %pI4, Dest IP = %pI4 PROTOCAL = %d",
+                &ip_header->saddr, &ip_header->daddr, protocol);
+
         message_size = strlen(message) + 1;
+        message[message_size - 1] = '\n';
+        memcpy(message + message_size, &protocol, sizeof(protocol));
+        memcpy(message + sizeof(protocol) + message_size, &saddr, sizeof(saddr));
+        message_size += (sizeof(protocol) + sizeof(saddr));
+        message[message_size] = '\0';
         skb_out = nlmsg_new(message_size, GFP_KERNEL);
         if (!skb_out) {
             pr_err("Failed to allocate a new skb\n");
