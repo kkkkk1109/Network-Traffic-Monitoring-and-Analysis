@@ -35,20 +35,20 @@ static unsigned int hook_func(void *priv,struct sk_buff *skb, const struct nf_ho
     struct sk_buff *skb_out;
     if (ip_header) {
         unsigned char protocol = ip_header->protocol;
-        unsigned int saddr = ntohl(ip_header->saddr);
-        // print in kernal
         pr_info("Netfilter Hook: Src IP = %pI4, Dest IP = %pI4 protocol = %d",
                 &ip_header->saddr, &ip_header->daddr, protocol);
+
         // generate message
-        snprintf(message, sizeof(message), "Netfilter Hook: Src IP = %pI4, Dest IP = %pI4 PROTOCAL = %d",
-                &ip_header->saddr, &ip_header->daddr, protocol);
+        // snprintf(message, sizeof(message), "Netfilter Hook: Src IP = %pI4, Dest IP = %pI4 PROTOCAL = %d",
+        //         &ip_header->saddr, &ip_header->daddr, protocol);
+        snprintf(message, sizeof(message), "%pI4,%d,%d",&ip_header->saddr, protocol, skb->len);
 
         message_size = strlen(message) + 1;
-        message[message_size - 1] = '\n';
-        memcpy(message + message_size, &protocol, sizeof(protocol));
-        memcpy(message + sizeof(protocol) + message_size, &saddr, sizeof(saddr));
-        message_size += (sizeof(protocol) + sizeof(saddr));
-        message[message_size] = '\0';
+        // message[message_size - 1] = '\n';
+        // memcpy(message + message_size, &protocol, sizeof(protocol));
+        // memcpy(message + sizeof(protocol) + message_size, &saddr, sizeof(saddr));
+        // message_size += (sizeof(protocol) + sizeof(saddr));
+        // message[message_size] = '\0';
         skb_out = nlmsg_new(message_size, GFP_KERNEL);
         if (!skb_out) {
             pr_err("Failed to allocate a new skb\n");
@@ -64,15 +64,6 @@ static unsigned int hook_func(void *priv,struct sk_buff *skb, const struct nf_ho
         NETLINK_CB(skb_out).dst_group = 1;
         strncpy(nlmsg_data(nlh), message, message_size);
         nlmsg_multicast(socket, skb_out, 0, 1, GFP_KERNEL);
-
-		// if(protocol == IPPROTO_TCP){
-		// 	pr_info("protocol: TCP\n");
-		// }else if(protocol == IPPROTO_UDP){
-		// 	pr_info("protocol : UDP\n");
-		// }else if(protocol == IPPROTO_ICMP){
-		// 	pr_info("protocol : ICMP");
-		// }
-
 	}
 
     return NF_ACCEPT;
@@ -92,7 +83,7 @@ static int __init netfilter_example_init(void) {
     }
     // netfilter hook initializaion
     nfho.hook = hook_func;              
-    nfho.hooknum = NF_INET_PRE_ROUTING;     
+    nfho.hooknum = NF_INET_LOCAL_IN;     
     nfho.pf = PF_INET;                      
     nfho.priority = NF_IP_PRI_FIRST;        
 
