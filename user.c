@@ -11,6 +11,7 @@
 #include <arpa/inet.h>  
 #include <netdb.h>
 #include "uthash/include/uthash.h"
+#include <signal.h>
 #define NETLINK_TESTFAMILY 25
 #define MULTICAST_GROUP_ID 1  
 
@@ -83,19 +84,24 @@ void handle_message(struct nlmsghdr *nlh) {
     unsigned int lens;
     char ipadr[20];
     token = strtok(msg,",");
-    printf("ip : %s", token);
+    //printf("ip : %s", token);
     strcpy(ipadr, token);
     token = strtok(NULL, ",");
-    printf("protocol : %s", token);
+    //printf("protocol : %s", token);
     protocol = atoi(token);
     token = strtok(NULL, ",");
-    printf("lens : %s\n", token);
+    //printf("lens : %s\n", token);
     lens = atoi(token);
-    printf("ip : %s protocol: %u, lens: %u\n", ipadr, protocol, lens);
+    //printf("ip : %s protocol: %u, lens: %u\n", ipadr, protocol, lens);
     hash_check(ipadr, lens, protocol);
     print_all_ip();
 }
-
+void handle_sigint(int sig){
+    printf("end program\n");
+    delete_ip();
+    printf("free ut hash table success!\n");
+    exit(0);
+}
 int main() {
     struct sockaddr_nl sa;
     struct nlmsghdr *nlh;
@@ -108,7 +114,7 @@ int main() {
         perror("socket");
         return -1;
     }
-
+    signal(SIGINT, handle_sigint);
     memset(&sa, 0, sizeof(sa));
     sa.nl_family = AF_NETLINK;
     sa.nl_pid = 0;  
@@ -121,8 +127,8 @@ int main() {
         return -1;
     }
     ht = NULL;
-    int count = 0;
-    while (count < 100) {
+    //int count = 0;
+    while (1) {
         char buffer[4096];
 
         memset(&msg, 0, sizeof(msg));
@@ -141,7 +147,8 @@ int main() {
         if (NLMSG_OK(nlh, ret)) {
             handle_message(nlh);
         }
-        count++;
+        //count++;
+
     }
     delete_ip();
     close(sock);
